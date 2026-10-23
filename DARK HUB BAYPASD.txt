@@ -1,4 +1,3 @@
-lua
 --[[
 DARK HUB v32.3 (GROUND ONLY) + CHICKEN KNOCKBACK BYPASS
 ]]
@@ -14,6 +13,7 @@ local PGui         = LP:WaitForChild("PlayerGui")
 
 print("[DARK HUB v32.3 GROUND] iniciando...")
 
+-- BYPASS
 pcall(function()
 if typeof(filtergc) ~= "function" then return end
 if typeof(debug) ~= "table" or typeof(debug.getupvalues) ~= "function" then return end
@@ -537,6 +537,7 @@ if stealEgg(target.record) then HUB.activeTarget = nil returnHome() end
 HUB.busy = false
 end
 
+-- ⭐ CHICKEN BYPASS com caminho específico do ovo
 local CHICKEN_EGG_PATH = {
     "AreaEggSlotsClient",
     "FirstAreaEgg_5262062450_5975783_Forest:Slot_003",
@@ -575,6 +576,7 @@ local function getObjPos(obj)
 end
 
 local function findChicken()
+    -- ⭐ Prioridade ABSOLUTA: caminho específico do ovo da galinha
     local pathObj = resolveChickenEggPath()
     if pathObj then
         local pos = getObjPos(pathObj)
@@ -582,6 +584,7 @@ local function findChicken()
             return { obj = pathObj, pos = pos, isPath = true }
         end
     end
+    -- Fallback: busca por nome
     local hints = {}
     for _, n in ipairs(ChickenBossFarm.altNames) do table.insert(hints, n:lower()) end
     table.insert(hints, ChickenBossFarm.chickenName:lower())
@@ -684,6 +687,9 @@ local function RunChickenSequence()
     end
 end
 
+-- ============================================================
+-- UI PRINCIPAL
+-- ============================================================
 if _G.__DarkHubV31 then pcall(function() _G.__DarkHubV31:Destroy() end) end
 local THEME = {
 bgTop=Color3.fromRGB(46,10,24), bgBot=Color3.fromRGB(28,6,16), headerTop=Color3.fromRGB(72,14,38), headerBot=Color3.fromRGB(52,10,28),
@@ -871,6 +877,7 @@ end
 tabGen.MouseButton1Click:Connect(function() HUB.sortMode = "GEN" paintTabs() refreshDirty = true end)
 tabRar.MouseButton1Click:Connect(function() HUB.sortMode = "RARITY" paintTabs() refreshDirty = true end)
 
+-- btnGo: galinha primeiro → knockback detectado → 1 teleporte imediato + fly normal
 btnGo.MouseButton1Click:Connect(function()
 if HUB.running then return end
 HUB.running = true
@@ -920,6 +927,7 @@ task.spawn(function() task.wait(0.4) refreshEggList() end)
 local lastRefresh = 0
 task.spawn(function() while screenGui.Parent do RunService.Heartbeat:Wait() local now = tick() if refreshDirty or (now - lastRefresh >= 0.1) then refreshDirty = false lastRefresh = now pcall(refreshEggList) end end end)
 
+-- HIT V1 — Loading roxo
 hitGui = Instance.new("ScreenGui") hitGui.Name="HitV1_Loading" hitGui.ResetOnSpawn=false hitGui.ZIndexBehavior=Enum.ZIndexBehavior.Sibling hitGui.IgnoreGuiInset=true hitGui.DisplayOrder=99999 hitGui.Enabled=false
 pcall(function() hitGui.Parent = gethui and gethui() or PGui end) if not hitGui.Parent then hitGui.Parent = PGui end
 local hitBg = Instance.new("Frame") hitBg.Size=UDim2.fromScale(1,1) hitBg.BackgroundColor3=Color3.fromRGB(0,0,0) hitBg.BorderSizePixel=0 hitBg.ZIndex=1 hitBg.Parent=hitGui
@@ -947,6 +955,7 @@ end)
 end
 local function hideHitLoading() hitToken = hitToken + 1 hitGui.Enabled = false end
 
+-- doHitTeleport: usado quando NÃO está rodando (leva ovo manual pra base)
 doHitTeleport = function()
 if hitActive then return end
 hitActive = true
@@ -971,6 +980,7 @@ hideHitLoading()
 hitActive = false
 end
 
+-- ⭐ doHitBoost: knockback detectado → TELEPORT IMEDIATO pro ovo → rouba → volta no FLY NORMAL
 doHitBoost = function()
     if hitActive then return end
     hitActive = true
@@ -983,6 +993,7 @@ doHitBoost = function()
 
     task.wait(0.1)
 
+    -- Escolhe ovo alvo
     local eggs = getFieldEggs()
     local target = nil
     if #eggs > 0 then
@@ -1020,6 +1031,7 @@ doHitBoost = function()
         return
     end
 
+    -- ⭐ TELEPORT ÚNICO — SÓ 1 VEZ, IMEDIATO
     local _, hrp = getChar()
     if hrp then
         hrp.CFrame = CFrame.new(targetPos.X, targetPos.Y + 2, targetPos.Z)
@@ -1039,6 +1051,7 @@ doHitBoost = function()
     if stealEgg(rec) then
         HUB.activeTarget = nil
         if setStatus then setStatus("✅ Roubado! Voltando (fly normal)...", true) end
+        -- ⭐ Volta usando FLY NORMAL (GroundMove dentro de returnHome) — SEM TELEPORTE
         returnHome()
     end
     HUB.activeTarget = nil
@@ -1049,6 +1062,7 @@ doHitBoost = function()
     hitActive = false
 end
 
+-- Auto-teleport pra base (pra levar ovo quando NÃO está rodando farm)
 local __wasCarrying = false
 task.spawn(function()
 while true do
@@ -1062,6 +1076,7 @@ end
 end)
 print("[HIT V1] Auto-teleport carregado")
 
+-- ⭐ Knockback watcher: galinha JOGA LONGE (não tira HP) → detecta empurrão
 local KNOCKBACK_VELOCITY = 150
 local KNOCKBACK_DISTANCE = 25
 local KNOCKBACK_TIMEOUT  = 8
